@@ -1,0 +1,6 @@
+{
+  "name": "NestCare",
+  "description": "A home management dashboard to track water filter replacements, car maintenance, and custom household schedules with smart reminders.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}
