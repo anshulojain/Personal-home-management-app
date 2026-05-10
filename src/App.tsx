@@ -38,8 +38,12 @@ export default function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MaintenanceItem | null>(null);
   const [isGlobalOffline, setIsGlobalOffline] = useState(!navigator.onLine);
+  const [isInIframe, setIsInIframe] = useState(false);
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
 
   useEffect(() => {
+    setIsInIframe(window.self !== window.top);
     const handleOnline = () => setIsGlobalOffline(false);
     const handleOffline = () => setIsGlobalOffline(true);
     window.addEventListener('online', handleOnline);
@@ -105,6 +109,18 @@ export default function App() {
     updateItem(updated);
   };
 
+  const handleAddCategory = () => {
+    if (newCategoryName.trim()) {
+      const id = newCategoryName.trim().toLowerCase().replace(/\s+/g, '-');
+      setState(prev => ({
+        ...prev,
+        categories: [...prev.categories, { id, name: newCategoryName.trim(), icon: 'Home' }]
+      }));
+      setNewCategoryName('');
+      setIsAddingCategory(false);
+    }
+  };
+
   const filteredItems = itemsWithDates.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           item.type.toLowerCase().includes(searchQuery.toLowerCase());
@@ -134,29 +150,70 @@ export default function App() {
             Care Zones
           </div>
           {state.categories.map(cat => (
-            <NavItem 
-              key={cat.id}
-              icon={cat.id === 'water' ? <Droplets size={20} /> : <Car size={20} />} 
-              label={cat.name} 
-              active={activeTab === cat.id} 
-              onClick={() => setActiveTab(cat.id)} 
-            />
+            <div key={cat.id} className="group relative">
+              <NavItem 
+                icon={cat.id === 'water' ? <Droplets size={20} /> : cat.id === 'car' ? <Car size={20} /> : <Home size={20} />} 
+                label={cat.name} 
+                active={activeTab === cat.id} 
+                onClick={() => setActiveTab(cat.id)} 
+              />
+              {!['water', 'car'].includes(cat.id) && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (confirm(`Delete the "${cat.name}" zone and all trackers inside it?`)) {
+                      setState(prev => ({
+                        categories: prev.categories.filter(c => c.id !== cat.id),
+                        items: prev.items.filter(i => i.categoryId !== cat.id)
+                      }));
+                      if (activeTab === cat.id) setActiveTab('dashboard');
+                    }
+                  }}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 opacity-0 group-hover:opacity-100 hover:bg-[#FCE8E6] hover:text-[#EA4335] rounded-lg transition-all text-[#5F6368]"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
           ))}
-          <button 
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#5F6368] hover:bg-[#F1F3F4] transition-colors mt-2 text-sm whitespace-nowrap"
-            onClick={() => {
-              const name = prompt('Category Name:');
-              if (name) {
-                setState(prev => ({
-                  ...prev,
-                  categories: [...prev.categories, { id: name.toLowerCase().replace(/\s+/g, '-'), name, icon: 'Settings' }]
-                }));
-              }
-            }}
-          >
-            <Plus size={20} />
-            <span className="hidden lg:inline">Add Zone</span>
-          </button>
+          {isAddingCategory ? (
+            <div className="flex flex-col gap-2 mt-2 p-2 bg-[#F1F3F4]/50 rounded-xl border border-[#E1E2E4]">
+              <input 
+                autoFocus
+                type="text" 
+                placeholder="Zone name..."
+                className="w-full px-3 py-1.5 text-sm bg-white border border-[#E1E2E4] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#1A1C1E]"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleAddCategory();
+                  if (e.key === 'Escape') setIsAddingCategory(false);
+                }}
+              />
+              <div className="flex gap-2">
+                <button 
+                  onClick={handleAddCategory}
+                  className="flex-1 px-3 py-1.5 bg-[#1A1C1E] text-white text-[10px] font-bold uppercase rounded-lg shadow-sm"
+                >
+                  Add
+                </button>
+                <button 
+                  onClick={() => setIsAddingCategory(false)}
+                  className="flex-1 px-3 py-1.5 bg-white text-[#5F6368] text-[10px] font-bold uppercase rounded-lg border border-[#E1E2E4]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button 
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-[#5F6368] hover:bg-[#F1F3F4] transition-colors mt-2 text-sm whitespace-nowrap"
+              onClick={() => setIsAddingCategory(true)}
+            >
+              <Plus size={20} />
+              <span className="hidden lg:inline">Add Zone</span>
+            </button>
+          )}
         </nav>
       </aside>
 
@@ -169,6 +226,12 @@ export default function App() {
                 {activeTab === 'dashboard' ? 'Overview' : state.categories.find(c => c.id === activeTab)?.name}
               </h1>
               <p className="text-[#5F6368]">Welcome back, handle your home maintenance with ease.</p>
+              {isInIframe && (
+                <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 bg-[#E8F0FE] text-[#1A73E8] rounded-lg text-xs font-medium border border-[#D2E3FC]">
+                  <Sparkles size={14} />
+                  <span>To install as mobile app: Open in a new tab first</span>
+                </div>
+              )}
             </div>
             {isGlobalOffline && (
               <div className="flex items-center gap-2 px-3 py-1 bg-[#FCE8E6] text-[#EA4335] rounded-full text-[10px] font-bold uppercase tracking-wider h-fit mt-2 border border-[#F8D7D4]">

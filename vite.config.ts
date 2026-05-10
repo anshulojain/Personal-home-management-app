@@ -15,7 +15,10 @@ export default defineConfig(({ mode }) => {
         manifest: {
           name: 'NestCare',
           short_name: 'NestCare',
-          description: 'Home Maintenance Tracker',
+          description: 'Your home maintenance assistant',
+          orientation: 'portrait',
+          scope: '/',
+          start_url: '/',
           theme_color: '#1A1C1E',
           background_color: '#F8F9FA',
           display: 'standalone',
